@@ -1,0 +1,32 @@
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: geth-boot-node-setup-pod
+  labels:
+    app: kuberneteth
+    name: bootnode-setup-pod
+spec:
+  template:
+    metadata:
+      labels:
+        app: kuberneteth
+        name: bootnode-setup-pod
+    spec:
+      containers:
+      - name: geth-boot-node-setup-container
+        image: mmeister/geth-node:bootv2
+        command: [ "sh" ]
+        args:
+        - "-cx"
+        - "cd /etc/testnet/bootnode;
+           echo \"enode://$(/bootnode -nodekeyhex 3bed8e0fa771475049cddac0fcc20a6cf1005e271e2b12ef339f213218b2dbdb -writeaddress)@$GETH_BOOTNODE_SVC_SERVICE_HOST:30303\" > enode.address;
+           set +x;
+           while true; do :; done;"
+        volumeMounts:
+        - name: geth-boot-node-persistent-storage
+          mountPath: /etc/testnet/bootnode
+      volumes:
+      - name: geth-boot-node-persistent-storage
+        hostPath:
+          path: /var/lib/docker/geth-storage/bootnode

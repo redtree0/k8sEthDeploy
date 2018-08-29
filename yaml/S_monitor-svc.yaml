@@ -1,0 +1,17 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: monitor-svc
+  labels:
+    app: kuberneteth
+    tier: frontend
+    name: monitor-svc
+spec:
+  selector:
+    app: kuberneteth
+    tier: frontend
+  ports:
+    - name: monitor-port
+      protocol: TCP
+      port: 3001

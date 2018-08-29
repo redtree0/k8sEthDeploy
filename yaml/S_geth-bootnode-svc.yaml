@@ -1,0 +1,19 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: geth-bootnode-svc
+  labels:
+    app: kuberneteth
+    tier: backend
+    name: geth-bootnode-svc
+spec:
+  selector:
+    app: kuberneteth
+    tier: backend
+  ports:
+    - name: geth-bootnode-ipc-discovery
+      protocol: UDP
+      port: 30303
+      targetPort: 30303
+

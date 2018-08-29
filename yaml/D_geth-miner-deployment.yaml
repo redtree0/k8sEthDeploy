@@ -1,0 +1,96 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: geth-miner-deployment
+spec:
+  strategy:
+    type: RollingUpdate
+  replicas: 1
+  template:
+    metadata:
+      name: geth-miner-deployment
+      labels:
+        app: kuberneteth
+        tier: backend
+        name: miner-deployment
+    spec:
+      initContainers:
+      - name: miner-genesis-init-container
+        image: ethereum/client-go:stable
+        command: [ "sh" ]
+        args:
+        - "-cx"
+        - "if [ ! -f /etc/testnet/miner/genesis_created ]; then
+             /usr/local/bin/geth --datadir /etc/testnet/miner init /etc/geth/genesis/Genesis-geth.json;
+             touch /etc/testnet/miner/genesis_created;
+           fi;"
+        volumeMounts:
+        - name: miner-persistent-storage
+          mountPath: /etc/testnet/miner
+        - name: geth-boot-node-persistent-storage
+          mountPath: /etc/testnet/bootnode
+        - name: genesis-config-persistent-storage
+          mountPath: /etc/geth/genesis/Genesis-geth.json
+          subPath: Genesis-geth.json
+      containers:
+      - name: miner-container
+        image: ethereum/client-go:stable
+        command: [ "sh" ]
+        args:
+        - "-cx"
+        - "mkdir -p /etc/geth/miner;
+           cp /etc/gethconfigmap/miner/gethconfig.toml /etc/geth/miner;
+           ENODE=$(cat /etc/testnet/bootnode/enode.address);
+           ENODE_ESC=$(echo $ENODE | sed 's@//@\\\\/\\\\/@g');
+           sed -i \"s/BootstrapNodes = \\[\\]/BootstrapNodes = [\\\"$ENODE_ESC\\\"]/g\" /etc/geth/miner/gethconfig.toml;
+           sed -i \"s/BootstrapNodesV5 = \\[\\]/BootstrapNodesV5 = [\\\"$ENODE_ESC\\\"]/g\" /etc/geth/miner/gethconfig.toml;
+           sed -i \"8d\" /etc/geth/miner/gethconfig.toml;
+           sed -i \"7d\" /etc/geth/miner/gethconfig.toml;
+           /usr/local/bin/geth \
+           --mine \
+           --netrestrict 172.16.0.0/12 \
+           --verbosity 3  \
+           --config /etc/geth/miner/gethconfig.toml;"
+        ports:
+          - containerPort: 8545
+          - containerPort: 8546
+          - containerPort: 30301
+            protocol: UDP
+          - containerPort: 30303
+        volumeMounts:
+        - name: miner-persistent-storage
+          mountPath: /etc/testnet/miner
+        - name: miner-config-persistent-storage
+          mountPath: /etc/gethconfigmap/miner
+        - name: keystore-config-persistent-storage
+          mountPath: /etc/testnet/miner/keystore/UTC--2017-04-06T08-30-06.659191254Z--023e291a99d21c944a871adcc44561a58f99bdbc
+          subPath: UTC--2017-04-06T08-30-06.659191254Z--023e291a99d21c944a871adcc44561a58f99bdbc
+        - name: geth-boot-node-persistent-storage
+          mountPath: /etc/testnet/bootnode
+      volumes:
+      - name: keystore-config-persistent-storage
+        configMap:
+          name: keystore-config
+          items:
+          - key: UTC--2017-04-06T08-30-06.659191254Z--023e291a99d21c944a871adcc44561a58f99bdbc
+            path: UTC--2017-04-06T08-30-06.659191254Z--023e291a99d21c944a871adcc44561a58f99bdbc
+      - name: geth-boot-node-persistent-storage
+        hostPath:
+          path: /var/lib/docker/geth-storage/bootnode
+      - name: genesis-config-persistent-storage
+        configMap:
+          name: genesis-config
+          items:
+          - key: Genesis-geth.json
+            path: Genesis-geth.json
+      - name: miner-persistent-storage
+        hostPath:
+          path: /var/lib/docker/geth-storage/miner
+      - name: miner-config-persistent-storage
+        configMap:
+          name: gethconfig-miner
+          items:
+          - key: gethconfig
+            path: gethconfig.toml
+

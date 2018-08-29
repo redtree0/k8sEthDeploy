@@ -1,0 +1,48 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: geth-boot-node-pod
+  labels:
+    app: kuberneteth
+    name: geth-bootnode-pod
+spec:
+  containers:
+  - name: geth-boot-node-container
+    image: mmeister/geth-node:bootv2
+    ports:
+      - containerPort: 30301
+      - containerPort: 30303
+        protocol: UDP
+    command: [ "sh" ]
+    args:
+    - "-c"
+    - "cd /etc/testnet/bootnode;
+       /geth --datadir /etc/testnet/bootnode init /etc/geth/genesis/Genesis-geth.json;
+       /bootnode --nodekeyhex 3bed8e0fa771475049cddac0fcc20a6cf1005e271e2b12ef339f213218b2dbdb --addr \":30303\" --nat any --netrestrict 172.16.0.0/12 --verbosity 9;"
+    volumeMounts:
+    - name: geth-boot-node-persistent-storage
+      mountPath: /etc/testnet/bootnode
+    - name: genesis-config-persistent-storage
+      mountPath: /etc/geth/genesis/Genesis-geth.json
+      subPath: Genesis-geth.json
+    - name: keystore-config-persistent-storage
+      mountPath: /etc/testnet/bootnode/keystore/UTC--2017-04-06T08-30-06.659191254Z--023e291a99d21c944a871adcc44561a58f99bdbc
+      subPath: UTC--2017-04-06T08-30-06.659191254Z--023e291a99d21c944a871adcc44561a58f99bdbc
+  volumes:
+  - name: keystore-config-persistent-storage
+    configMap:
+      name: keystore-config
+      items:
+      - key: UTC--2017-04-06T08-30-06.659191254Z--023e291a99d21c944a871adcc44561a58f99bdbc
+        path: UTC--2017-04-06T08-30-06.659191254Z--023e291a99d21c944a871adcc44561a58f99bdbc
+  - name: geth-boot-node-persistent-storage
+    hostPath:
+      path: /var/lib/docker/geth-storage/bootnode
+  - name: genesis-config-persistent-storage
+    configMap:
+      name: genesis-config
+      items:
+      - key: Genesis-geth.json
+        path: Genesis-geth.json
+

@@ -1,0 +1,36 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: monitor-config
+  namespace: default
+  labels:
+    app: kuberneteth
+    name: monitor-config
+data:
+  app.json: |-
+    [
+      {
+        "name"              : "miner",
+        "cwd"               : ".",
+        "script"            : "app.js",
+        "log_date_format"   : "YYYY-MM-DD HH:mm Z",
+        "merge_logs"        : false,
+        "watch"             : false,
+        "exec_interpreter"  : "node",
+        "exec_mode"         : "fork_mode",
+        "env":
+        {
+          "NODE_ENV"        : "production",
+          "RPC_HOST"        : "miner-rpchost",
+          "RPC_PORT"        : "8545",
+          "LISTENING_PORT"  : "30303",
+          "INSTANCE_NAME"   : "miner",
+          "CONTACT_DETAILS" : "",
+          "WS_SERVER"       : "localhost:3001",
+          "WS_SECRET"       : "connectme",
+          "VERBOSITY"       : 0
+        }
+      }
+    ]
+
